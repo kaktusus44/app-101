@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createId } from './id'
 
 export type Project = {
   id: string
@@ -41,7 +42,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   function update(transform: (current: Project[]) => Project[]) { setProjects((current) => { const next = transform(current); localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); return next }) }
   const value = useMemo<ProjectsContextValue>(() => ({
     projects,
-    addProject(project) { const id = crypto.randomUUID(); update((current) => [...current, { ...project, id, balance: 0, income: 0, expense: 0 }]); return id },
+    addProject(project) { const id = createId(); update((current) => [...current, { ...project, id, balance: 0, income: 0, expense: 0 }]); return id },
     updateProject(id, project) { update((current) => current.map((item) => item.id === id ? { ...item, ...project } : item)) },
   }), [projects])
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>

@@ -495,13 +495,16 @@ input.single-field { min-height: 72px; border: 0; }
 .fiscal-qr header > svg { color: #168ddf; }
 .fiscal-qr header span { display: grid; gap: 2px; }
 .fiscal-qr header small { color: #858a92; }
+.fiscal-qr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .fiscal-qr-upload { min-height: 48px; display: flex!important; flex-direction: row!important; align-items: center; justify-content: center; gap: 8px!important; padding: 8px!important; border: 1px solid #168ddf!important; border-radius: 11px!important; background: white!important; color: #168ddf!important; cursor: pointer; }
+.fiscal-qr-upload--secondary { border-color: #c8cbd0!important; color: #555b63!important; }
 .fiscal-qr-upload input { display: none; }
 .fiscal-qr textarea { min-height: 70px; resize: vertical; }
 .fiscal-qr > button { min-height: 44px; border: 0; border-radius: 10px; background: #168ddf; color: white; font: inherit; font-weight: 600; }
 .fiscal-qr > button:disabled { opacity: .45; }
 .fiscal-qr-success { display: flex; align-items: center; gap: 7px; margin: 0; color: #15834f; }
 .fiscal-qr-success svg { width: 18px; }
+@media(max-width:420px){.fiscal-qr-actions{grid-template-columns:1fr}}
 .counterparty-balance-filter { width: min(100%,620px); overflow: hidden; padding: 8px 10px 18px; border-radius: 22px 22px 0 0; background: #f2f2f8; }
 .counterparty-balance-filter header { display: grid; grid-template-columns: 90px 1fr 90px; align-items: center; padding: 5px 0 10px; }
 .counterparty-balance-filter header h2 { margin: 0; text-align: center; font-size: 17px; }

@@ -1,5 +1,6 @@
 import {
   Check,
+  Camera,
   ChevronRight,
   FileText,
   Home,
@@ -436,20 +437,15 @@ export function CounterpartyDetails() {
     setQrReading(true);
     setQrError("");
     try {
-      const bitmap = await createImageBitmap(file);
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error();
-      context.drawImage(bitmap, 0, 0);
-      const image = context.getImageData(0, 0, canvas.width, canvas.height);
-      const result = jsQR(image.data, image.width, image.height);
+      if (!file.type.startsWith("image/")) throw new Error("not-image");
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const result = decodeQrBitmap(bitmap);
+      bitmap.close();
       if (!result) throw new Error();
-      applyFiscalQr(result.data);
+      applyFiscalQr(result);
     } catch {
       setQrError(
-        "Не удалось распознать QR-код. Попробуйте другое фото или вставьте строку вручную.",
+        "QR-код на изображении не найден. Наведите камеру прямо на код, обеспечьте хорошее освещение и поместите весь квадрат в кадр.",
       );
     } finally {
       setQrReading(false);
@@ -1116,16 +1112,16 @@ export function CounterpartyDetails() {
                       <small>Сумма и дата заполнятся автоматически</small>
                     </span>
                   </header>
-                  <label className="fiscal-qr-upload">
-                    <ImageUp />
-                    {qrReading ? "Распознаём…" : "Сфотографировать или выбрать QR"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={(event) => void readQrImage(event.target.files?.[0])}
-                    />
-                  </label>
+                  <div className="fiscal-qr-actions">
+                    <label className="fiscal-qr-upload">
+                      <Camera />{qrReading ? "Распознаём…" : "Сканировать камерой"}
+                      <input type="file" accept="image/*" capture="environment" onChange={(event) => {void readQrImage(event.target.files?.[0]);event.target.value=""}} />
+                    </label>
+                    <label className="fiscal-qr-upload fiscal-qr-upload--secondary">
+                      <ImageUp />Выбрать фото
+                      <input type="file" accept="image/*" onChange={(event) => {void readQrImage(event.target.files?.[0]);event.target.value=""}} />
+                    </label>
+                  </div>
                   <textarea
                     value={fiscalQr}
                     onChange={(event) => setFiscalQr(event.target.value)}
@@ -1239,6 +1235,28 @@ function isImageUrl(value: string) {
     return false;
   }
 }
+function decodeQrBitmap(bitmap: ImageBitmap) {
+  const maxSide = 1800;
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  for (const rotation of [0, 90, 180, 270]) {
+    const sideways = rotation === 90 || rotation === 270;
+    const width = Math.max(1, Math.round((sideways ? bitmap.height : bitmap.width) * scale));
+    const height = Math.max(1, Math.round((sideways ? bitmap.width : bitmap.height) * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) continue;
+    context.translate(width / 2, height / 2);
+    context.rotate((rotation * Math.PI) / 180);
+    context.drawImage(bitmap, -bitmap.width * scale / 2, -bitmap.height * scale / 2, bitmap.width * scale, bitmap.height * scale);
+    const image = context.getImageData(0, 0, width, height);
+    const result = jsQR(image.data, width, height, { inversionAttempts: "attemptBoth" });
+    if (result?.data) return result.data;
+  }
+  return "";
+}
+
 function parseFiscalQr(value: string) {
   const source = value.trim().replace(/^[^?]*\?/, "");
   const params = new URLSearchParams(source);

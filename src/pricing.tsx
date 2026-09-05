@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createId } from './id'
 
 export type PriceItem = { id: string; name: string; unit: string; cost: number; price: number }
 export type PriceCategory = { id: string; name: string }
@@ -58,21 +59,21 @@ export function PricingProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PricingContextValue>(() => ({
     priceLists,
     addPriceList(name) {
-      const id = crypto.randomUUID()
+      const id = createId()
       update((current) => [...current, { id, name, categories: [], templates: [], items: [] }])
       return id
     },
     renamePriceList(id, name) { update((current) => current.map((list) => list.id === id ? { ...list, name } : list)) },
-    duplicatePriceList(id) { update((current) => { const source = current.find((list) => list.id === id); return source ? [...current, { ...structuredClone(source), id: crypto.randomUUID(), name: `${source.name} — копия` }] : current }) },
+    duplicatePriceList(id) { update((current) => { const source = current.find((list) => list.id === id); return source ? [...current, { ...structuredClone(source), id: createId(), name: `${source.name} — копия` }] : current }) },
     deletePriceList(id) { update((current) => current.filter((list) => list.id !== id)) },
-    addCategory(priceListId, name) { update((current) => current.map((list) => list.id === priceListId ? { ...list, categories: [...list.categories, { id: crypto.randomUUID(), name }] } : list)) },
-    addTemplate(priceListId, name) { update((current) => current.map((list) => list.id === priceListId ? { ...list, templates: [...list.templates, { id: crypto.randomUUID(), name }] } : list)) },
+    addCategory(priceListId, name) { update((current) => current.map((list) => list.id === priceListId ? { ...list, categories: [...list.categories, { id: createId(), name }] } : list)) },
+    addTemplate(priceListId, name) { update((current) => current.map((list) => list.id === priceListId ? { ...list, templates: [...list.templates, { id: createId(), name }] } : list)) },
     renameTemplate(priceListId, templateId, name) { update((current) => current.map((list) => list.id === priceListId ? { ...list, templates: list.templates.map((template) => template.id === templateId ? { ...template, name } : template) } : list)) },
-    duplicateTemplate(priceListId, templateId) { update((current) => current.map((list) => { const template = list.templates.find((candidate) => candidate.id === templateId); return list.id === priceListId && template ? { ...list, templates: [...list.templates, { ...template, id: crypto.randomUUID(), name: `${template.name} — копия` }] } : list })) },
+    duplicateTemplate(priceListId, templateId) { update((current) => current.map((list) => { const template = list.templates.find((candidate) => candidate.id === templateId); return list.id === priceListId && template ? { ...list, templates: [...list.templates, { ...template, id: createId(), name: `${template.name} — копия` }] } : list })) },
     deleteTemplate(priceListId, templateId) { update((current) => current.map((list) => list.id === priceListId ? { ...list, templates: list.templates.filter((template) => template.id !== templateId) } : list)) },
-    addItem(priceListId, item) { update((current) => current.map((list) => list.id === priceListId ? { ...list, items: [...list.items, { ...item, id: crypto.randomUUID() }] } : list)) },
+    addItem(priceListId, item) { update((current) => current.map((list) => list.id === priceListId ? { ...list, items: [...list.items, { ...item, id: createId() }] } : list)) },
     updateItem(priceListId, itemId, item) { update((current) => current.map((list) => list.id === priceListId ? { ...list, items: list.items.map((currentItem) => currentItem.id === itemId ? { ...item, id: itemId } : currentItem) } : list)) },
-    duplicateItem(priceListId, itemId) { update((current) => current.map((list) => { const item = list.items.find((candidate) => candidate.id === itemId); return list.id === priceListId && item ? { ...list, items: [...list.items, { ...item, id: crypto.randomUUID(), name: `${item.name} — копия` }] } : list })) },
+    duplicateItem(priceListId, itemId) { update((current) => current.map((list) => { const item = list.items.find((candidate) => candidate.id === itemId); return list.id === priceListId && item ? { ...list, items: [...list.items, { ...item, id: createId(), name: `${item.name} — копия` }] } : list })) },
     deleteItem(priceListId, itemId) { update((current) => current.map((list) => list.id === priceListId ? { ...list, items: list.items.filter((item) => item.id !== itemId) } : list)) },
   }), [priceLists])
 
