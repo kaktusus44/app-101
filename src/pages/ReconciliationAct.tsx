@@ -1,5 +1,5 @@
 import { Download, ExternalLink, Share2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces'
 import { api } from '../api'
@@ -24,9 +24,9 @@ export function ReconciliationAct() {
   const [pdfError,setPdfError]=useState('')
   const [from,setFrom]=useState(()=>new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10))
   const [to,setTo]=useState(()=>new Date().toISOString().slice(0,10))
-  const details=useMemo(()=>read<LegalDetails>(`app101.document-details.${user?.organizationId}`,{}),[user?.organizationId])
+  const [details,setDetails]=useState<LegalDetails>({})
 
-  useEffect(()=>{if(!ownerId)return;setLoading(true);api<{events:FinanceEvent[]}>(`/counterparties/${ownerId}/finance-events`).then(data=>setEvents(data.events)).finally(()=>setLoading(false))},[ownerId])
+  useEffect(()=>{if(!ownerId)return;setLoading(true);Promise.all([api<{events:FinanceEvent[]}>(`/counterparties/${ownerId}/finance-events`),api<LegalDetails>('/document-settings')]).then(([data,savedDetails])=>{setEvents(data.events);setDetails(savedDetails)}).catch(()=>setPdfError('Не удалось загрузить данные для акта сверки.')).finally(()=>setLoading(false))},[ownerId])
   useEffect(()=>{
     if(!person||loading)return
     const definition=buildAct({organization:user?.organizationName||user?.name||'Организация',counterparty:person.name,email:person.email||'',phone:person.phone||'',details,events,from,to})
@@ -70,6 +70,5 @@ function eventTitle(event:FinanceEvent){if(event.type==='receipt')return event.r
 function formatDate(value:string){const [y,m,d]=value.split('-');return d&&m&&y?`${d}.${m}.${y}`:value}
 function money(value:number){return new Intl.NumberFormat('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}).format(value)}
 function safeName(value:string){return value.trim().replace(/[^\p{L}\p{N}]+/gu,'_')||'контрагент'}
-function read<T>(key:string,fallback:T):T{try{return JSON.parse(localStorage.getItem(key)||'') as T}catch{return fallback}}
 function download(blob:Blob,name:string){const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 async function generatePdf(definition:TDocumentDefinitions){const [{default:pdfMake},{default:pdfFonts}]=await Promise.all([import('pdfmake/build/pdfmake'),import('pdfmake/build/vfs_fonts')]);pdfMake.vfs=pdfFonts as unknown as Record<string,string>;return new Promise<Blob>(resolve=>pdfMake.createPdf(definition).getBlob(resolve))}

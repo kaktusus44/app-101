@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   BarChart3,
   Building2,
   ChevronRight,
   Landmark,
   List,
-  Plus,
   Settings,
   Table2,
   Users,
@@ -14,8 +13,14 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import { BrandLogo } from "../components/BrandLogo";
-import { EventCreateMenu } from "../components/EventCreateMenu";
-import { money, summarize, summarizeFund, summarizeProject, useFinanceEvents } from "../finance";
+import { useCounterparties } from "../counterparties";
+import {
+  money,
+  summarize,
+  summarizeFund,
+  summarizeProject,
+  useFinanceEvents,
+} from "../finance";
 import { useProjects } from "../projects";
 
 type CardProps = {
@@ -52,15 +57,30 @@ export function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { projects } = useProjects();
+  const { counterparties } = useCounterparties();
   const { events: financeEvents } = useFinanceEvents();
   const canEdit = user?.role === "organization";
-  const [menuOpen, setMenuOpen] = useState(false);
-  const myEvents = useMemo(() => financeEvents.filter((event) => event.counterpartyId === user?.id), [financeEvents, user?.id]);
-  const accountableBalance = summarize(myEvents.filter((event) => event.receiptDestination !== "agent_fee")).balance;
+  const myEvents = useMemo(
+    () => financeEvents.filter((event) => event.counterpartyId === user?.id),
+    [financeEvents, user?.id],
+  );
+  const accountableBalance = summarize(
+    myEvents.filter((event) => event.receiptDestination !== "agent_fee"),
+  ).balance;
   const fundBalance = summarizeFund(financeEvents).balance;
+  const fundPendingReports = financeEvents.filter(
+    (event) =>
+      event.type === "report" && event.status === "pending" && !event.projectId,
+  ).length;
   const fourWeeksAgo = Date.now() - 28 * 24 * 60 * 60 * 1000;
-  const recentEvents = financeEvents.filter((event) => new Date(event.eventDate ?? 0).getTime() >= fourWeeksAgo);
-  const projectProfit = projects.reduce((total, project) => total + summarizeProject(recentEvents, project.id).balance, 0);
+  const recentEvents = financeEvents.filter(
+    (event) => new Date(event.eventDate ?? 0).getTime() >= fourWeeksAgo,
+  );
+  const projectProfit = projects.reduce(
+    (total, project) =>
+      total + summarizeProject(recentEvents, project.id).balance,
+    0,
+  );
   const recentIncome = myEvents.reduce((sum, event) => {
     return event.status === "confirmed" &&
       event.type === "receipt" &&
@@ -98,23 +118,38 @@ export function Dashboard() {
             value={String(projects.length)}
             onClick={() => navigate("/projects")}
           >
-            <span className="metric">{money(projectProfit)}</span>
-            <span className="muted">
-              прибыли по всем проектам за <b>4 недели</b>
+            <span className="dashboard-compact-metric">
+              <span>Прибыль за 4 недели</span>
+              <b>{money(projectProfit)}</b>
             </span>
           </DashboardCard>
           <DashboardCard
             icon={Users}
             title="Контрагенты"
+            value={String(counterparties.length)}
             onClick={() => navigate("/counterparties")}
           >
-            <span className="metric">{money(accountableBalance)}</span>
-            <span className="muted">
-              мой подотчётный баланс по проектам и фонду компании
+            <span className="dashboard-compact-metric">
+              <span>Подотчётный баланс</span>
+              <b>{money(accountableBalance)}</b>
             </span>
-            <span className="metric">{money(recentIncome)}</span>
-            <span className="muted">
-              мой доход за <b>4 недели</b>
+            <span className="dashboard-compact-metric">
+              <span>Доход за 4 недели</span>
+              <b>{money(recentIncome)}</b>
+            </span>
+          </DashboardCard>
+          <DashboardCard
+            icon={Landmark}
+            title="Фонд компании"
+            onClick={() => navigate("/company-fund")}
+          >
+            <span className="dashboard-compact-metric">
+              <span>Баланс фонда</span>
+              <b>{money(fundBalance)}</b>
+            </span>
+            <span className="dashboard-compact-metric">
+              <span>Непринятые отчёты</span>
+              <b>{fundPendingReports}</b>
             </span>
           </DashboardCard>
           <DashboardCard
@@ -129,30 +164,12 @@ export function Dashboard() {
             onClick={() => navigate("/price-lists")}
           />
           <DashboardCard
-            icon={Landmark}
-            title="Фонд компании"
-            onClick={() => navigate("/company-fund")}
-          >
-            <span className="metric">{money(fundBalance)}</span>
-            <span className="muted">баланс Фонда компании</span>
-          </DashboardCard>
-          <DashboardCard
             icon={BarChart3}
             title="Аналитика"
             onClick={() => navigate("/analytics")}
           />
         </section>
-        {canEdit && (
-          <button
-            className="fab"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Добавить событие"
-          >
-            <Plus size={38} />
-          </button>
-        )}
       </div>
-      <EventCreateMenu open={menuOpen} onClose={() => setMenuOpen(false)} returnTo="/" />
     </main>
   );
 }

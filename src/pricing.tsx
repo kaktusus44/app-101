@@ -1,4 +1,6 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { api } from './api'
+import { useAuth } from './auth'
 import { createId } from './id'
 
 export type PriceItem = { id: string; name: string; unit: string; cost: number; price: number }
@@ -8,6 +10,8 @@ export type PriceList = { id: string; name: string; categories: PriceCategory[];
 
 type PricingContextValue = {
   priceLists: PriceList[]
+  loading: boolean
+  error: string
   addPriceList: (name: string) => string
   renamePriceList: (id: string, name: string) => void
   duplicatePriceList: (id: string) => void
@@ -21,43 +25,26 @@ type PricingContextValue = {
   updateItem: (priceListId: string, itemId: string, item: Omit<PriceItem, 'id'>) => void
   duplicateItem: (priceListId: string, itemId: string) => void
   deleteItem: (priceListId: string, itemId: string) => void
+  importItems: (priceListId: string, items: Omit<PriceItem, 'id'>[]) => void
 }
-
-const STORAGE_KEY = 'app101.price-lists'
-const initialPriceLists: PriceList[] = [{
-  id: 'test',
-  name: 'Тест',
-  categories: [{ id: 'category-1', name: 'Тест1' }],
-  templates: [{ id: 'template-1', name: 'Тест2' }],
-  items: [
-    { id: 'item-1', name: 'Обоит', unit: 'шт.', cost: 3, price: 0 },
-    { id: 'item-2', name: 'Плитка', unit: 'м²', cost: 1000, price: 500 },
-  ],
-}]
 
 const PricingContext = createContext<PricingContextValue | null>(null)
 
-function readPriceLists() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) as PriceList[] : initialPriceLists
-  } catch {
-    return initialPriceLists
-  }
-}
-
 export function PricingProvider({ children }: { children: ReactNode }) {
-  const [priceLists, setPriceLists] = useState<PriceList[]>(readPriceLists)
+  const {user}=useAuth()
+  const [priceLists, setPriceLists] = useState<PriceList[]>([])
+  const [loading,setLoading]=useState(Boolean(user));const [error,setError]=useState('')
+  useEffect(()=>{let active=true;if(!user){setPriceLists([]);setLoading(false);return}setLoading(true);setError('');api<PriceList[]>('/price-lists').then(server=>{if(active)setPriceLists(server)}).catch(cause=>{if(active)setError(cause instanceof Error?cause.message:'Не удалось загрузить прайс-листы')}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[user?.id,user?.role])
   function update(transform: (current: PriceList[]) => PriceList[]) {
     setPriceLists((current) => {
       const next = transform(current)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      const before=new Map(current.map(item=>[item.id,item]));const after=new Map(next.map(item=>[item.id,item]));for(const item of next){const method=before.has(item.id)?'PUT':'POST';const path=method==='POST'?'/price-lists':`/price-lists/${encodeURIComponent(item.id)}`;void api(path,{method,body:JSON.stringify(item)}).catch(cause=>setError(cause instanceof Error?cause.message:'Не удалось сохранить прайс-лист'))}for(const item of current)if(!after.has(item.id))void api(`/price-lists/${encodeURIComponent(item.id)}`,{method:'DELETE'}).catch(cause=>setError(cause instanceof Error?cause.message:'Не удалось удалить прайс-лист'))
       return next
     })
   }
 
   const value = useMemo<PricingContextValue>(() => ({
-    priceLists,
+    priceLists,loading,error,
     addPriceList(name) {
       const id = createId()
       update((current) => [...current, { id, name, categories: [], templates: [], items: [] }])
@@ -75,7 +62,8 @@ export function PricingProvider({ children }: { children: ReactNode }) {
     updateItem(priceListId, itemId, item) { update((current) => current.map((list) => list.id === priceListId ? { ...list, items: list.items.map((currentItem) => currentItem.id === itemId ? { ...item, id: itemId } : currentItem) } : list)) },
     duplicateItem(priceListId, itemId) { update((current) => current.map((list) => { const item = list.items.find((candidate) => candidate.id === itemId); return list.id === priceListId && item ? { ...list, items: [...list.items, { ...item, id: createId(), name: `${item.name} — копия` }] } : list })) },
     deleteItem(priceListId, itemId) { update((current) => current.map((list) => list.id === priceListId ? { ...list, items: list.items.filter((item) => item.id !== itemId) } : list)) },
-  }), [priceLists])
+    importItems(priceListId, items) { update((current) => current.map((list) => list.id === priceListId ? { ...list, items: [...list.items, ...items.map((item) => ({ ...item, id: createId() }))] } : list)) },
+  }), [priceLists,loading,error])
 
   return <PricingContext.Provider value={value}>{children}</PricingContext.Provider>
 }

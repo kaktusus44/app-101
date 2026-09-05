@@ -9,7 +9,7 @@ import { useProjects } from '../projects'
 type Participant = { id:string; name:string; caption:string; system:boolean; route:string }
 
 export function ProjectParticipants(){
-  const {projectId=''}=useParams();const navigate=useNavigate();const {user}=useAuth();const {projects,updateProject}=useProjects();const {counterparties}=useCounterparties();const project=projects.find(item=>item.id===projectId);const [pickerOpen,setPickerOpen]=useState(false);const [query,setQuery]=useState('');const canEdit=user?.role==='organization'
+  const {projectId=''}=useParams();const navigate=useNavigate();const {user}=useAuth();const {projects,loading,updateProject}=useProjects();const {counterparties}=useCounterparties();const project=projects.find(item=>item.id===projectId);const [pickerOpen,setPickerOpen]=useState(false);const [query,setQuery]=useState('');const canEdit=user?.role==='organization'
   const participants=useMemo<Participant[]>(()=>{
     if(!project)return[]
     const result=new Map<string,Participant>()
@@ -22,6 +22,7 @@ export function ProjectParticipants(){
     return [...result.values()]
   },[project,counterparties,user])
   const selectedIds=new Set(participants.map(item=>item.id));const candidates=counterparties.filter(item=>`${item.name} ${categoryLabels[item.category]}`.toLowerCase().includes(query.toLowerCase()))
+  if(loading)return <main className="light-page"><div className="mobile-page"><p className="empty-state">Загрузка проекта…</p></div></main>
   if(!project)return <Navigate to="/projects" replace/>
   function toggle(person:Counterparty){const ids=project!.participantIds||[];const selected=ids.includes(person.id);const customer=person.id===project!.customerId||normalize(person.name)===normalize(project!.customer);const fee=(project!.agentFeeShares||[]).some(item=>item.recipientId===person.id);if(selected&&!customer&&!fee)save(ids.filter(id=>id!==person.id));else if(!selected&&!customer&&!fee)save([...ids,person.id])}
   function save(participantIds:string[]){const {id,balance:_,income:__,expense:___,...editable}=project!;updateProject(id,{...editable,participantIds})}

@@ -11,7 +11,10 @@ export type FinanceEvent = {
   eventDate: string
   receiptDestination: 'project' | 'agent_fee' | 'company_fund' | ''
   transferKind: 'project_payment' | 'project_accountable' | 'fund_payment' | 'project_to_fund' | 'fund_to_project' | ''
+  positions?: FinancePosition[]
 }
+
+export type FinancePosition = { sourceItemId: string; name: string; unit: string; quantity: number; cost: number; price: number; expenseArticleId: string }
 
 export type FinancialSummary = { balance: number; income: number; expense: number }
 

@@ -65,6 +65,15 @@ type FinanceEvent = {
   estimateDestination?: EstimateDestination | "";
   expenseCategory?: string;
   estimatePositions?: string;
+  positions?: {
+    sourceItemId: string;
+    name: string;
+    unit: string;
+    quantity: number;
+    cost: number;
+    price: number;
+    expenseArticleId: string;
+  }[];
   status: "pending" | "confirmed" | "rejected";
   projectId: string;
   projectName: string;
@@ -113,16 +122,17 @@ export function CounterpartyDetails() {
   const { counterpartyId = "", eventType = "", eventId = "" } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const navigationState = location.state as { returnTo?: string; projectId?: string } | null;
+  const navigationState = location.state as {
+    returnTo?: string;
+    projectId?: string;
+  } | null;
   const returnTo =
-    navigationState?.returnTo ??
-    `/counterparties/${counterpartyId}`;
+    navigationState?.returnTo ?? `/counterparties/${counterpartyId}`;
   const { user } = useAuth();
   const { counterparties, createCounterparty } = useCounterparties();
   const { projects } = useProjects();
   const { priceLists } = usePricing();
   const [query, setQuery] = useState("");
-  const [actionsOpen, setActionsOpen] = useState(false);
   const [formType, setFormType] = useState<FinanceType | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<FinanceEvent | null>(null);
   const [editingEventId, setEditingEventId] = useState("");
@@ -134,6 +144,9 @@ export function CounterpartyDetails() {
   const [secondaryAmount, setSecondaryAmount] = useState("");
   const [expenseCategory, setExpenseCategory] = useState("");
   const [estimatePositionIds, setEstimatePositionIds] = useState<string[]>([]);
+  const [reportPositions, setReportPositions] = useState<
+    NonNullable<FinanceEvent["positions"]>
+  >([]);
   const [positionsOpen, setPositionsOpen] = useState(false);
   const [transferResult, setTransferResult] = useState<TransferResult | null>(
     null,
@@ -164,10 +177,7 @@ export function CounterpartyDetails() {
   const [fiscalQr, setFiscalQr] = useState("");
   const [qrError, setQrError] = useState("");
   const [qrReading, setQrReading] = useState(false);
-  const eventReturnTo =
-    returnTo === "/events"
-      ? sessionStorage.getItem("app101.eventHistoryReturnTo") || returnTo
-      : returnTo;
+  const eventReturnTo = returnTo;
   const isSelf = counterpartyId === "me" || counterpartyId === user?.id;
   const canEdit = user?.role === "organization";
   const financeOwnerId = isSelf ? (user?.id ?? "") : counterpartyId;
@@ -286,9 +296,10 @@ export function CounterpartyDetails() {
         /* Новый получатель начинает с нулевого баланса. */
       }
     }
-    const selectedPositions = priceLists
+    const selectedPositionItems = priceLists
       .flatMap((list) => list.items)
-      .filter((item) => estimatePositionIds.includes(item.id))
+      .filter((item) => estimatePositionIds.includes(item.id));
+    const selectedPositions = selectedPositionItems
       .map((item) => item.name)
       .join(", ");
     const body = JSON.stringify({
@@ -299,6 +310,20 @@ export function CounterpartyDetails() {
       estimateDestination: formType === "estimate" ? estimateDestination : "",
       expenseCategory: formType === "estimate" ? expenseCategory : "",
       estimatePositions: formType === "estimate" ? selectedPositions : "",
+      positions:
+        formType === "estimate"
+          ? selectedPositionItems.map((item) => ({
+              sourceItemId: item.id,
+              name: item.name,
+              unit: item.unit,
+              quantity: 1,
+              cost: item.cost,
+              price: item.price,
+              expenseArticleId: "",
+            }))
+          : formType === "report"
+            ? reportPositions
+            : [],
       projectId: hasProject ? projectId : "",
       projectName: hasProject ? (project?.name ?? "") : "",
       receiptDestination: formType === "receipt" ? receiptDestination : "",
@@ -346,6 +371,7 @@ export function CounterpartyDetails() {
     setEstimateDestination("project");
     setExpenseCategory("");
     setEstimatePositionIds([]);
+    setReportPositions([]);
     setTransferKind("project_payment");
     setTag("");
     setDescription("");
@@ -386,6 +412,15 @@ export function CounterpartyDetails() {
     setEditingEventId(event.id);
     setFormType(event.type);
     setAmount(String(event.amount));
+    setSecondaryAmount(String(event.secondaryAmount ?? 0));
+    setEstimateDestination(event.estimateDestination || "project");
+    setExpenseCategory(event.expenseCategory || "");
+    setEstimatePositionIds(
+      event.positions
+        ?.map((position) => position.sourceItemId)
+        .filter(Boolean) ?? [],
+    );
+    setReportPositions(event.type === "report" ? (event.positions ?? []) : []);
     setProjectId(event.projectId);
     setReceiptDestination(event.receiptDestination || "project");
     setTransferKind(event.transferKind || "project_payment");
@@ -394,6 +429,17 @@ export function CounterpartyDetails() {
     setDescription(event.description);
     setEventDate(event.eventDate);
     setAttachmentUrl(event.attachmentUrl);
+    setSelectedEvent(null);
+  }
+  function createReportFromEstimate(event: FinanceEvent) {
+    setFormType("report");
+    setAmount(String(event.amount));
+    setProjectId(event.projectId);
+    setDescription(
+      event.description || `Отчёт по смете от ${formatDate(event.eventDate)}`,
+    );
+    setReportPositions(event.positions ?? []);
+    setEventDate(new Date().toISOString().slice(0, 10));
     setSelectedEvent(null);
   }
   function closeEventDetails() {
@@ -438,7 +484,9 @@ export function CounterpartyDetails() {
     setQrError("");
     try {
       if (!file.type.startsWith("image/")) throw new Error("not-image");
-      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const bitmap = await createImageBitmap(file, {
+        imageOrientation: "from-image",
+      });
       const result = decodeQrBitmap(bitmap);
       bitmap.close();
       if (!result) throw new Error();
@@ -475,7 +523,13 @@ export function CounterpartyDetails() {
           <ChevronRight />
         </section>
         <section className="counterparty-links">
-          <button>
+          <button
+            onClick={() =>
+              navigate(
+                `/events?counterpartyId=${encodeURIComponent(financeOwnerId)}`,
+              )
+            }
+          >
             <Home />
             Баланс по проектам и Фонду компании
             <ChevronRight />
@@ -726,6 +780,14 @@ export function CounterpartyDetails() {
               </div>
               {canEdit && (
                 <div className="finance-details-actions">
+                  {selectedEvent.type === "estimate" && (
+                    <button
+                      onClick={() => createReportFromEstimate(selectedEvent)}
+                    >
+                      <FileText />
+                      Создать отчёт
+                    </button>
+                  )}
                   <button onClick={() => editEvent(selectedEvent)}>
                     <Pencil />
                     Редактировать
@@ -833,43 +895,6 @@ export function CounterpartyDetails() {
                   </button>
                 </div>
               )}
-            </section>
-          </div>
-        )}
-        {canEdit && (
-          <button
-            className="fab fab--page"
-            onClick={() => setActionsOpen(true)}
-            aria-label="Добавить событие"
-          >
-            <Plus />
-          </button>
-        )}
-        {actionsOpen && (
-          <div className="sheet-backdrop">
-            <section className="counterparty-event-sheet">
-              <div className="sheet-heading">
-                <span />
-                <h2>Добавить событие</h2>
-                <button
-                  className="icon-button"
-                  onClick={() => setActionsOpen(false)}
-                >
-                  <X />
-                </button>
-              </div>
-              {(Object.keys(typeLabels) as FinanceType[]).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    setFormType(type);
-                    setActionsOpen(false);
-                  }}
-                >
-                  <Plus />
-                  {typeLabels[type]}
-                </button>
-              ))}
             </section>
           </div>
         )}
@@ -1104,37 +1129,130 @@ export function CounterpartyDetails() {
                   </div>
                 )}
               {formType === "report" && (
-                <section className="fiscal-qr">
-                  <header>
-                    <QrCode />
-                    <span>
-                      <strong>QR-код кассового чека</strong>
-                      <small>Сумма и дата заполнятся автоматически</small>
-                    </span>
-                  </header>
-                  <div className="fiscal-qr-actions">
-                    <label className="fiscal-qr-upload">
-                      <Camera />{qrReading ? "Распознаём…" : "Сканировать камерой"}
-                      <input type="file" accept="image/*" capture="environment" onChange={(event) => {void readQrImage(event.target.files?.[0]);event.target.value=""}} />
-                    </label>
-                    <label className="fiscal-qr-upload fiscal-qr-upload--secondary">
-                      <ImageUp />Выбрать фото
-                      <input type="file" accept="image/*" onChange={(event) => {void readQrImage(event.target.files?.[0]);event.target.value=""}} />
-                    </label>
-                  </div>
-                  <textarea
-                    value={fiscalQr}
-                    onChange={(event) => setFiscalQr(event.target.value)}
-                    placeholder="Или вставьте строку: t=…&s=220.00&fn=…"
-                  />
-                  <button type="button" onClick={() => applyFiscalQr(fiscalQr)} disabled={!fiscalQr.trim()}>
-                    Извлечь сумму
-                  </button>
-                  {qrError && <p className="form-error">{qrError}</p>}
-                  {fiscalQr && !qrError && amount && (
-                    <p className="fiscal-qr-success"><Check />Сумма {money(Number(amount))} ₽ получена из чека</p>
+                <>
+                  <section className="fiscal-qr">
+                    <header>
+                      <QrCode />
+                      <span>
+                        <strong>QR-код кассового чека</strong>
+                        <small>Сумма и дата заполнятся автоматически</small>
+                      </span>
+                    </header>
+                    <div className="fiscal-qr-actions">
+                      <label className="fiscal-qr-upload">
+                        <Camera />
+                        {qrReading ? "Распознаём…" : "Сканировать камерой"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={(event) => {
+                            void readQrImage(event.target.files?.[0]);
+                            event.target.value = "";
+                          }}
+                        />
+                      </label>
+                      <label className="fiscal-qr-upload fiscal-qr-upload--secondary">
+                        <ImageUp />
+                        Выбрать фото
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => {
+                            void readQrImage(event.target.files?.[0]);
+                            event.target.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <textarea
+                      value={fiscalQr}
+                      onChange={(event) => setFiscalQr(event.target.value)}
+                      placeholder="Или вставьте строку: t=…&s=220.00&fn=…"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => applyFiscalQr(fiscalQr)}
+                      disabled={!fiscalQr.trim()}
+                    >
+                      Извлечь сумму
+                    </button>
+                    {qrError && <p className="form-error">{qrError}</p>}
+                    {fiscalQr && !qrError && amount && (
+                      <p className="fiscal-qr-success">
+                        <Check />
+                        Сумма {money(Number(amount))} ₽ получена из чека
+                      </p>
+                    )}
+                  </section>
+                  {reportPositions.length > 0 && (
+                    <section className="report-position-editor">
+                      <strong>Позиции из сметы</strong>
+                      {reportPositions.map((position, index) => (
+                        <div key={`${position.sourceItemId}-${index}`}>
+                          <span>
+                            {position.name}
+                            <small>{position.unit}</small>
+                          </span>
+                          <label>
+                            Количество
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.001"
+                              value={position.quantity}
+                              onChange={(event) =>
+                                setReportPositions((current) =>
+                                  current.map((item, itemIndex) =>
+                                    itemIndex === index
+                                      ? {
+                                          ...item,
+                                          quantity: Number(event.target.value),
+                                        }
+                                      : item,
+                                  ),
+                                )
+                              }
+                            />
+                          </label>
+                          <label>
+                            Цена
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={position.price}
+                              onChange={(event) =>
+                                setReportPositions((current) =>
+                                  current.map((item, itemIndex) =>
+                                    itemIndex === index
+                                      ? {
+                                          ...item,
+                                          price: Number(event.target.value),
+                                        }
+                                      : item,
+                                  ),
+                                )
+                              }
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setReportPositions((current) =>
+                                current.filter(
+                                  (_, itemIndex) => itemIndex !== index,
+                                ),
+                              )
+                            }
+                          >
+                            <X />
+                          </button>
+                        </div>
+                      ))}
+                    </section>
                   )}
-                </section>
+                </>
               )}
               <label>
                 Сумма
@@ -1240,8 +1358,14 @@ function decodeQrBitmap(bitmap: ImageBitmap) {
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   for (const rotation of [0, 90, 180, 270]) {
     const sideways = rotation === 90 || rotation === 270;
-    const width = Math.max(1, Math.round((sideways ? bitmap.height : bitmap.width) * scale));
-    const height = Math.max(1, Math.round((sideways ? bitmap.width : bitmap.height) * scale));
+    const width = Math.max(
+      1,
+      Math.round((sideways ? bitmap.height : bitmap.width) * scale),
+    );
+    const height = Math.max(
+      1,
+      Math.round((sideways ? bitmap.width : bitmap.height) * scale),
+    );
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
@@ -1249,9 +1373,17 @@ function decodeQrBitmap(bitmap: ImageBitmap) {
     if (!context) continue;
     context.translate(width / 2, height / 2);
     context.rotate((rotation * Math.PI) / 180);
-    context.drawImage(bitmap, -bitmap.width * scale / 2, -bitmap.height * scale / 2, bitmap.width * scale, bitmap.height * scale);
+    context.drawImage(
+      bitmap,
+      (-bitmap.width * scale) / 2,
+      (-bitmap.height * scale) / 2,
+      bitmap.width * scale,
+      bitmap.height * scale,
+    );
     const image = context.getImageData(0, 0, width, height);
-    const result = jsQR(image.data, width, height, { inversionAttempts: "attemptBoth" });
+    const result = jsQR(image.data, width, height, {
+      inversionAttempts: "attemptBoth",
+    });
     if (result?.data) return result.data;
   }
   return "";

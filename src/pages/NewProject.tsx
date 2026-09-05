@@ -1,5 +1,5 @@
 import { CalendarDays, Plus, Search, X } from "lucide-react";
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useCounterparties } from "../counterparties";
@@ -8,7 +8,7 @@ import { useProjects } from "../projects";
 export function NewProject() {
   const navigate = useNavigate();
   const { projectId } = useParams();
-  const { projects, addProject, updateProject } = useProjects();
+  const { projects, loading, addProject, updateProject } = useProjects();
   const editedProject = projectId
     ? projects.find((item) => item.id === projectId)
     : undefined;
@@ -34,6 +34,14 @@ export function NewProject() {
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [savingCustomer, setSavingCustomer] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const hydratedProject = useRef("");
+  useEffect(() => {
+    if (!editedProject || hydratedProject.current === editedProject.id) return;
+    hydratedProject.current = editedProject.id;
+    setName(editedProject.name); setShortName(editedProject.shortName); setCustomer(editedProject.customer); setCustomerId(editedProject.customerId ?? ""); setCompletionDate(editedProject.completionDate); setArea(editedProject.area ? String(editedProject.area) : ""); setAddress(editedProject.address); setPhotoAlbumUrl(editedProject.photoAlbumUrl);
+  }, [editedProject]);
   const customers = useMemo(
     () =>
       counterparties.filter(
@@ -75,8 +83,9 @@ export function NewProject() {
       window.alert("Вставьте ссылку вручную");
     }
   }
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
+    setSaving(true); setError("");
     const input = {
       name: name.trim(),
       shortName: shortName.trim(),
@@ -87,15 +96,13 @@ export function NewProject() {
       address: address.trim(),
       photoAlbumUrl: photoAlbumUrl.trim(),
     };
-    if (projectId) {
-      updateProject(projectId, input);
-      navigate(`/projects/${projectId}`, { replace: true });
-    } else {
-      const id = addProject(input);
-      navigate(`/projects/${id}`, { replace: true });
-    }
+    try {
+      if (projectId) { await updateProject(projectId, input); navigate(`/projects/${projectId}`, { replace: true }); }
+      else { const id = await addProject(input); navigate(`/projects/${id}`, { replace: true }); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Не удалось сохранить проект"); setSaving(false); }
   }
 
+  if (projectId && loading) return <main className="light-page"><div className="mobile-page"><p className="empty-state">Загрузка проекта…</p></div></main>;
   if (projectId && !editedProject) return <Navigate to="/projects" replace />;
 
   return (
@@ -185,7 +192,8 @@ export function NewProject() {
             />
             <button type="button">Вставить</button>
           </label>
-          <button className="primary-button">Сохранить</button>
+          {error && <p className="form-error">{error}</p>}
+          <button className="primary-button" disabled={saving}>{saving ? "Сохраняем…" : "Сохранить"}</button>
         </form>
         {customerPickerOpen && (
           <div className="sheet-backdrop">

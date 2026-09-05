@@ -1,18 +1,246 @@
-import { BriefcaseBusiness, Check, HelpCircle, LockKeyhole, Plus, Search, UnlockKeyhole, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { useAuth } from '../auth'
-import { PageHeader } from '../components/PageHeader'
-import { useCounterparties } from '../counterparties'
-import { useProjects } from '../projects'
+import {
+  BriefcaseBusiness,
+  Check,
+  LockKeyhole,
+  Search,
+  UnlockKeyhole,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../auth";
+import { PageHeader } from "../components/PageHeader";
+import { useCounterparties } from "../counterparties";
+import { useProjects } from "../projects";
 
-type Share={recipientId:string;name:string;category:string;percent:number;locked:boolean}
-export function ProjectAgentFeeRecipients(){
- const {projectId=''}=useParams();const navigate=useNavigate();const {user}=useAuth();const {projects,updateProject}=useProjects();const {counterparties}=useCounterparties();const project=projects.find(item=>item.id===projectId);const [editing,setEditing]=useState(false);const [query,setQuery]=useState('');const initial=project?.agentFeeShares?.length?project.agentFeeShares:[{recipientId:user?.id||'owner',name:user?.name||'Основатель',category:'Основатель компании',percent:100,locked:true}];const [shares,setShares]=useState<Share[]>(initial)
- const candidates=useMemo(()=>[{id:user?.id||'owner',name:user?.name||'Основатель',category:'Основатель компании'},...counterparties.map(item=>({id:item.id,name:item.name,category:item.category})),{id:'company-fund',name:user?.organizationName||'Компания',category:'Фонд компании'}].filter(item=>`${item.name} ${item.category}`.toLowerCase().includes(query.toLowerCase())),[counterparties,query,user])
- if(!project)return <Navigate to="/projects" replace/>
- const total=shares.reduce((sum,item)=>sum+item.percent,0)
- function toggle(candidate:{id:string;name:string;category:string}){setShares(current=>current.some(item=>item.recipientId===candidate.id)?current.filter(item=>item.recipientId!==candidate.id):[...current,{recipientId:candidate.id,name:candidate.name,category:candidate.category,percent:0,locked:false}])}
- function save(){if(total!==100)return;const {id,balance:_,income:__,expense:___,...editable}=project!;updateProject(id,{...editable,agentFeeShares:shares});navigate(`/projects/${id}`,{replace:true})}
- return <main className="light-page"><div className="mobile-page agent-fee-page"><PageHeader title={project.name} actions={<button className="icon-button icon-button--blue" aria-label="Справка"><HelpCircle/></button>}/><h1>Доли прибыли</h1><p>Выберите получателей и укажите процент, который они будут получать от агентского вознаграждения.</p><button className="agent-fee-edit" onClick={()=>setEditing(true)}>Изменить</button><section className="agent-fee-card"><header>Сумма долей: <b className={total===100?'is-valid':'is-invalid'}>{total}%</b></header>{shares.map(share=><article key={share.recipientId}><div><strong>{share.name}</strong><span>{share.category}</span><small>Партнер</small></div><button className="agent-fee-lock" onClick={()=>setShares(items=>items.map(item=>item.recipientId===share.recipientId?{...item,locked:!item.locked}:item))} aria-label={share.locked?'Разблокировать долю':'Заблокировать долю'}>{share.locked?<LockKeyhole/>:<UnlockKeyhole/>}</button><input type="number" min="0" max="100" disabled={share.locked} value={share.percent} onChange={event=>setShares(items=>items.map(item=>item.recipientId===share.recipientId?{...item,percent:Number(event.target.value)}:item))}/></article>)}</section>{total!==100&&<p className="form-error">Сумма долей должна быть равна 100%</p>}<button className="primary-button" onClick={save} disabled={total!==100}>Сохранить</button>{editing&&<div className="sheet-backdrop" onClick={()=>setEditing(false)}><section className="agent-fee-picker" onClick={event=>event.stopPropagation()}><header><button className="icon-button"><Plus/></button><h2>Получатели</h2><button onClick={()=>setEditing(false)}>Готово</button></header><label className="search-field"><Search/><input placeholder="Поиск" value={query} onChange={event=>setQuery(event.target.value)}/></label><div>{candidates.map(candidate=>{const selected=shares.some(item=>item.recipientId===candidate.id);return <button key={candidate.id} onClick={()=>toggle(candidate)}><BriefcaseBusiness/><span><strong>{candidate.name}</strong><small>{candidate.category}</small>{candidate.id==='company-fund'&&<small>Фонд компании</small>}</span><i className={selected?'is-selected':''}>{selected&&<Check/>}</i></button>})}</div><button className="agent-fee-picker-close" onClick={()=>setEditing(false)}><X/>Закрыть</button></section></div>}</div></main>
+type Share = {
+  recipientId: string;
+  name: string;
+  category: string;
+  percent: number;
+  locked: boolean;
+};
+export function ProjectAgentFeeRecipients() {
+  const { projectId = "" } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { projects, loading, updateProject } = useProjects();
+  const { counterparties } = useCounterparties();
+  const project = projects.find((item) => item.id === projectId);
+  const [editing, setEditing] = useState(false);
+  const [query, setQuery] = useState("");
+  const initial = project?.agentFeeShares?.length
+    ? project.agentFeeShares
+    : [
+        {
+          recipientId: user?.id || "owner",
+          name: user?.name || "Основатель",
+          category: "Основатель компании",
+          percent: 100,
+          locked: true,
+        },
+      ];
+  const [shares, setShares] = useState<Share[]>(initial);
+  useEffect(() => {
+    if (project)
+      setShares(
+        project.agentFeeShares?.length
+          ? project.agentFeeShares
+          : [
+              {
+                recipientId: user?.id || "owner",
+                name: user?.name || "Основатель",
+                category: "Основатель компании",
+                percent: 100,
+                locked: true,
+              },
+            ],
+      );
+  }, [project?.id]);
+  const candidates = useMemo(
+    () =>
+      [
+        {
+          id: user?.id || "owner",
+          name: user?.name || "Основатель",
+          category: "Основатель компании",
+        },
+        ...counterparties.map((item) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+        })),
+        {
+          id: "company-fund",
+          name: user?.organizationName || "Компания",
+          category: "Фонд компании",
+        },
+      ].filter((item) =>
+        `${item.name} ${item.category}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+      ),
+    [counterparties, query, user],
+  );
+  if (loading)
+    return (
+      <main className="light-page">
+        <div className="mobile-page">
+          <p className="empty-state">Загрузка проекта…</p>
+        </div>
+      </main>
+    );
+  if (!project) return <Navigate to="/projects" replace />;
+  const total = shares.reduce((sum, item) => sum + item.percent, 0);
+  function toggle(candidate: { id: string; name: string; category: string }) {
+    setShares((current) =>
+      current.some((item) => item.recipientId === candidate.id)
+        ? current.filter((item) => item.recipientId !== candidate.id)
+        : [
+            ...current,
+            {
+              recipientId: candidate.id,
+              name: candidate.name,
+              category: candidate.category,
+              percent: 0,
+              locked: false,
+            },
+          ],
+    );
+  }
+  async function save() {
+    if (total !== 100) return;
+    const { id, balance: _, income: __, expense: ___, ...editable } = project!;
+    await updateProject(id, { ...editable, agentFeeShares: shares });
+    navigate(`/projects/${id}`, { replace: true });
+  }
+  return (
+    <main className="light-page">
+      <div className="mobile-page agent-fee-page">
+        <PageHeader title={project.name} />
+        <h1>Доли прибыли</h1>
+        <p>
+          Выберите получателей и укажите процент, который они будут получать от
+          агентского вознаграждения.
+        </p>
+        <button className="agent-fee-edit" onClick={() => setEditing(true)}>
+          Изменить
+        </button>
+        <section className="agent-fee-card">
+          <header>
+            Сумма долей:{" "}
+            <b className={total === 100 ? "is-valid" : "is-invalid"}>
+              {total}%
+            </b>
+          </header>
+          {shares.map((share) => (
+            <article key={share.recipientId}>
+              <div>
+                <strong>{share.name}</strong>
+                <span>{share.category}</span>
+                <small>Партнер</small>
+              </div>
+              <button
+                className="agent-fee-lock"
+                onClick={() =>
+                  setShares((items) =>
+                    items.map((item) =>
+                      item.recipientId === share.recipientId
+                        ? { ...item, locked: !item.locked }
+                        : item,
+                    ),
+                  )
+                }
+                aria-label={
+                  share.locked ? "Разблокировать долю" : "Заблокировать долю"
+                }
+              >
+                {share.locked ? <LockKeyhole /> : <UnlockKeyhole />}
+              </button>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                disabled={share.locked}
+                value={share.percent}
+                onChange={(event) =>
+                  setShares((items) =>
+                    items.map((item) =>
+                      item.recipientId === share.recipientId
+                        ? { ...item, percent: Number(event.target.value) }
+                        : item,
+                    ),
+                  )
+                }
+              />
+            </article>
+          ))}
+        </section>
+        {total !== 100 && (
+          <p className="form-error">Сумма долей должна быть равна 100%</p>
+        )}
+        <button
+          className="primary-button"
+          onClick={save}
+          disabled={total !== 100}
+        >
+          Сохранить
+        </button>
+        {editing && (
+          <div className="sheet-backdrop" onClick={() => setEditing(false)}>
+            <section
+              className="agent-fee-picker"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <header>
+                <span />
+                <h2>Получатели</h2>
+                <button onClick={() => setEditing(false)}>Готово</button>
+              </header>
+              <label className="search-field">
+                <Search />
+                <input
+                  placeholder="Поиск"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+              <div>
+                {candidates.map((candidate) => {
+                  const selected = shares.some(
+                    (item) => item.recipientId === candidate.id,
+                  );
+                  return (
+                    <button
+                      key={candidate.id}
+                      onClick={() => toggle(candidate)}
+                    >
+                      <BriefcaseBusiness />
+                      <span>
+                        <strong>{candidate.name}</strong>
+                        <small>{candidate.category}</small>
+                        {candidate.id === "company-fund" && (
+                          <small>Фонд компании</small>
+                        )}
+                      </span>
+                      <i className={selected ? "is-selected" : ""}>
+                        {selected && <Check />}
+                      </i>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                className="agent-fee-picker-close"
+                onClick={() => setEditing(false)}
+              >
+                <X />
+                Закрыть
+              </button>
+            </section>
+          </div>
+        )}
+      </div>
+    </main>
+  );
 }

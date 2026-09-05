@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { api } from './api'
 
 export type UserRole = 'organization' | 'client'
-export type User = { id: string; organizationId: string; email: string; name: string; organizationName: string; role: UserRole }
+export type User = { id: string; organizationId: string; email: string; name: string; organizationName: string; role: UserRole; category?: 'customer'|'partner'|'contractor'|'supplier'|'employee'|'' }
 type Profile = Pick<User, 'name' | 'email' | 'organizationName'>
 type AuthContextValue = { user: User | null; loading: boolean; signIn: (email: string, password: string, role?: UserRole) => Promise<void>; signOut: () => Promise<void>; updateProfile: (profile: Profile) => Promise<void>; acceptInvitation: (token: string, email: string, password: string) => Promise<void> }
 const AuthContext = createContext<AuthContextValue | null>(null)

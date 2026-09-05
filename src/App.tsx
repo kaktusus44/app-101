@@ -29,6 +29,8 @@ import { CompanyFund } from './pages/CompanyFund'
 import { Analytics } from './pages/Analytics'
 import { ProjectAgentFeeRecipients } from './pages/ProjectAgentFeeRecipients'
 import { ProjectParticipants } from './pages/ProjectParticipants'
+import { Archive } from './pages/Archive'
+import { AppShell } from './components/AppShell'
 
 function ProtectedRoute() {
   const { user, loading } = useAuth()
@@ -49,6 +51,7 @@ export function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/invite/:token" element={<AcceptInvitation />} />
         <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:projectId" element={<ProjectDetails />} />
@@ -78,6 +81,8 @@ export function App() {
             <Route path="/price-lists/:priceListId/items/new" element={<NewPriceItem />} />
             <Route path="/price-lists/:priceListId/items/:itemId/edit" element={<NewPriceItem />} />
             <Route path="/counterparties/invite" element={<InviteCounterparty />} />
+            <Route path="/archive" element={<Archive />} />
+          </Route>
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
