@@ -208,6 +208,25 @@ input.single-field { min-height: 72px; border: 0; }
 .project-details-page { padding-bottom: 100px; }
 .project-delete-button { color: #bd4b53; }
 .project-details-page .page-header { margin-bottom: 2px; }
+.project-album-sheet { width: min(100%, 620px); display: grid; gap: 14px; padding: 18px 18px 28px; border-radius: 24px 24px 0 0; background: #f2f2f8; }
+.project-album-sheet .sheet-heading { grid-template-columns: 1fr auto; }
+.project-album-sheet .sheet-heading h2 { text-align: left; }
+.project-album-sheet > p { margin: 0; color: #7f8792; line-height: 1.4; }
+.project-album-sheet > input { min-height: 54px; padding: 0 14px; border: 0; border-radius: 14px; background: white; font: inherit; }
+.project-album-sheet .form-error { color: #bd4b53; }
+.project-album-delete { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; background: transparent; color: #bd4b53; font: inherit; }
+.project-album-delete svg { width: 20px; }
+.project-delete-sheet { width: min(100%, 620px); max-height: 82vh; overflow-y: auto; padding: 18px 18px 28px; border-radius: 24px 24px 0 0; background: #f2f2f8; }
+.project-delete-sheet .sheet-heading { grid-template-columns: 1fr auto; }
+.project-delete-sheet .sheet-heading h2 { text-align: left; }
+.project-delete-sheet > p { color: #7f8792; }
+.project-delete-sheet > div:last-child { overflow: hidden; border-radius: 16px; background: white; }
+.project-delete-sheet article { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px; border-bottom: 1px solid #e7e8eb; }
+.project-delete-sheet article:last-child { border-bottom: 0; }
+.project-delete-sheet article span { display: grid; gap: 4px; }
+.project-delete-sheet article small { color: #8b9097; }
+.project-delete-sheet article button { width: 44px; height: 44px; display: grid; place-items: center; flex: none; border: 0; border-radius: 50%; background: #fff0f1; color: #bd4b53; }
+.project-delete-sheet article svg { width: 20px; }
 .project-summary { display: grid; gap: 11px; padding: 5px 2px 20px; background: white; }
 .project-summary h1 { margin: 0; font-size: 25px; }
 .project-summary > strong { margin-bottom: 6px; }
