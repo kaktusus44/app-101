@@ -101,7 +101,6 @@ export function Dashboard() {
             <div className={`role-badge role-badge--${user?.role}`}>
               {canEdit ? "Организация · редактор" : "Клиент · просмотр"}
             </div>
-            <p>ОБНОВЛЕНО ТОЛЬКО ЧТО</p>
           </div>
           <button
             className="icon-button icon-button--dark"

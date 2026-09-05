@@ -31,11 +31,13 @@ export function EventCreateMenu({
 }: Props) {
   const navigate = useNavigate();
   if (!open) return null;
-  const openEvent = (type: string) =>
+  const openEvent = (type: string) => {
+    onClose();
     navigate(
       `/counterparties/${encodeURIComponent(counterpartyId)}/events/new/${type}`,
       { state: { returnTo, projectId } },
     );
+  };
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
