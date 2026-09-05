@@ -5,6 +5,7 @@ export type Project = {
   name: string
   shortName: string
   customer: string
+  customerId?: string
   completionDate: string
   area: number
   address: string
@@ -12,17 +13,19 @@ export type Project = {
   balance: number
   income: number
   expense: number
+  agentFeeShares?: { recipientId: string; name: string; category: string; percent: number; locked: boolean }[]
 }
 
 type ProjectInput = Omit<Project, 'id' | 'balance' | 'income' | 'expense'>
 type ProjectsContextValue = {
   projects: Project[]
   addProject: (project: ProjectInput) => string
+  updateProject: (id: string, project: ProjectInput) => void
 }
 
 const STORAGE_KEY = 'app101.projects'
 const initialProjects: Project[] = [{
-  id: 'test-project', name: 'Тест', shortName: 'Петя', customer: 'Васильев Василий',
+  id: 'test-project', name: 'Тест', shortName: 'Петя', customer: 'Васильев Василий', customerId: '',
   completionDate: '2026-09-04', area: 200, address: 'Москва, ул. Ленина, 2',
   photoAlbumUrl: '', balance: 0, income: 0, expense: 0,
 }]
@@ -39,6 +42,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ProjectsContextValue>(() => ({
     projects,
     addProject(project) { const id = crypto.randomUUID(); update((current) => [...current, { ...project, id, balance: 0, income: 0, expense: 0 }]); return id },
+    updateProject(id, project) { update((current) => current.map((item) => item.id === id ? { ...item, ...project } : item)) },
   }), [projects])
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>
 }

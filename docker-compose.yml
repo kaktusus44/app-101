@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:17-alpine
+    network_mode: host
     environment:
       POSTGRES_DB: app101
       POSTGRES_USER: app101
@@ -13,23 +14,27 @@ services:
       timeout: 3s
       retries: 10
   api:
-    build: ./backend
+    build:
+      context: ./backend
+      network: host
+    network_mode: host
     environment:
-      DATABASE_URL: postgres://app101:app101@db:5432/app101?sslmode=disable
-      HTTP_ADDR: :8080
+      DATABASE_URL: postgres://app101:app101@127.0.0.1:5432/app101?sslmode=disable&connect_timeout=5
+      HTTP_ADDR: :18080
       COOKIE_SECURE: "false"
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:18080/healthz"]
       interval: 5s
       timeout: 3s
       retries: 10
   web:
-    build: .
-    ports:
-      - "8080:80"
+    build:
+      context: .
+      network: host
+    network_mode: host
     depends_on:
       api:
         condition: service_healthy

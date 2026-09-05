@@ -1,13 +1,14 @@
 import { useState, type FormEvent } from 'react'
-import { Building2, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, type UserRole } from '../auth'
+import { BrandLogo } from '../components/BrandLogo'
 
 export function Login() {
   const { user, loading, signIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [email, setEmail] = useState('demo@app101.ru')
+  const [email, setEmail] = useState('demo@app199.ru')
   const [password, setPassword] = useState('demo')
   const [role, setRole] = useState<UserRole>('organization')
   const [showPassword, setShowPassword] = useState(false)
@@ -35,16 +36,16 @@ export function Login() {
   return (
     <main className="login-page">
       <section className="login-card">
-        <div className="brand-mark"><Building2 size={34} /></div>
+        <BrandLogo />
         <p className="eyebrow">Управление компанией</p>
-        <h1>Добро пожаловать в 101</h1>
+        <h1>Добро пожаловать в 199</h1>
         <p className="login-card__lead">Проекты, финансы и команда — в одном рабочем пространстве.</p>
         <form onSubmit={submit}>
           <fieldset className="role-picker">
             <legend>Войти как</legend>
             <div>
-              <button type="button" className={role === 'organization' ? 'is-active' : ''} onClick={() => { setRole('organization'); setEmail('demo@app101.ru') }}>Организация</button>
-              <button type="button" className={role === 'client' ? 'is-active' : ''} onClick={() => { setRole('client'); setEmail('client@app101.ru') }}>Клиент</button>
+              <button type="button" className={role === 'organization' ? 'is-active' : ''} onClick={() => { setRole('organization'); setEmail('demo@app199.ru') }}>Организация</button>
+              <button type="button" className={role === 'client' ? 'is-active' : ''} onClick={() => { setRole('client'); setEmail('client@app199.ru') }}>Клиент</button>
             </div>
           </fieldset>
           <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></label>
