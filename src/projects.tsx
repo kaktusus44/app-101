@@ -15,6 +15,7 @@ export type Project = {
   income: number
   expense: number
   agentFeeShares?: { recipientId: string; name: string; category: string; percent: number; locked: boolean }[]
+  participantIds?: string[]
 }
 
 type ProjectInput = Omit<Project, 'id' | 'balance' | 'income' | 'expense'>

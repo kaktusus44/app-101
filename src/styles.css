@@ -227,6 +227,26 @@ input.single-field { min-height: 72px; border: 0; }
 .project-delete-sheet article small { color: #8b9097; }
 .project-delete-sheet article button { width: 44px; height: 44px; display: grid; place-items: center; flex: none; border: 0; border-radius: 50%; background: #fff0f1; color: #bd4b53; }
 .project-delete-sheet article svg { width: 20px; }
+.project-participants-page { padding-bottom: 36px; }
+.participants-project { margin: -8px 8px 18px; color: #858a92; }
+.participants-list { overflow: hidden; border-radius: 16px; background: white; }
+.participants-list > button { width: 100%; min-height: 72px; display: grid; grid-template-columns: 32px 1fr 22px; align-items: center; gap: 8px; padding: 10px 14px; border: 0; border-bottom: 1px solid #e7e8eb; background: white; text-align: left; }
+.participants-list > button:last-child { border-bottom: 0; }
+.participants-list > button > svg:first-child { color: #168ddf; }
+.participants-list span { display: grid; gap: 4px; }
+.participants-list small { color: #858a92; }
+.participants-add { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 18px; }
+.participants-add svg { width: 20px; }
+.participants-picker { width: min(100%,620px); max-height: 90dvh; display: grid; grid-template-rows: auto auto minmax(0,1fr) auto; gap: 12px; padding: 18px 18px max(22px,env(safe-area-inset-bottom)); border-radius: 24px 24px 0 0; background: #f2f2f8; }
+.participants-picker .sheet-heading { grid-template-columns: 1fr auto; }
+.participants-picker .sheet-heading h2 { text-align: left; }
+.participants-picker > div { overflow-y: auto; border-radius: 15px; background: white; }
+.participants-picker > div > button { width: 100%; min-height: 68px; display: grid; grid-template-columns: 30px 1fr 26px; align-items: center; gap: 8px; padding: 8px 14px; border: 0; border-bottom: 1px solid #e7e8eb; background: white; text-align: left; }
+.participants-picker > div > button span { display: grid; gap: 3px; }
+.participants-picker > div > button small { color: #858a92; }
+.participants-picker i { width: 25px; height: 25px; display: grid; place-items: center; border: 2px solid #c8cbd0; border-radius: 50%; color: white; }
+.participants-picker i.is-selected { border-color: #168ddf; background: #168ddf; }
+.participants-picker i svg { width: 16px; }
 .project-summary { display: grid; gap: 11px; padding: 5px 2px 20px; background: white; }
 .project-summary h1 { margin: 0; font-size: 25px; }
 .project-summary > strong { margin-bottom: 6px; }
@@ -490,13 +510,18 @@ input.single-field { min-height: 72px; border: 0; }
 .reconciliation-period { display: grid; grid-template-columns: 1fr 135px 14px 135px; align-items: center; gap: 5px; margin-bottom: 14px; padding: 12px 14px; border-radius: 14px; background: white; }
 .reconciliation-period input { min-width: 0; border: 0; color: #168ddf; font: inherit; }
 .pdf-preview { min-height: 620px; display: grid; place-items: center; overflow: hidden; border-radius: 14px; background: #dfe1e7; }
-.pdf-preview iframe { width: 100%; height: 70vh; min-height: 620px; border: 0; background: white; }
+.pdf-preview object { width: 100%; height: 70vh; min-height: 620px; border: 0; background: white; }
 .pdf-preview p { color: #737780; }
+.pdf-preview { position: relative; }
+.pdf-preview-open { position: absolute; right: 14px; bottom: 14px; min-height: 42px; display: flex; align-items: center; gap: 7px; padding: 0 14px; border-radius: 12px; background: #168ddf; box-shadow: 0 6px 20px #1d273638; color: white; text-decoration: none; font-weight: 600; }
+.pdf-preview-open svg { width: 19px; }
 .pdf-actions { position: sticky; bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; padding: 10px; border-radius: 16px; background: rgba(255,255,255,.94); box-shadow: 0 8px 28px #30344224; }
-.pdf-actions button { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 12px; font: inherit; font-weight: 600; }
-.pdf-actions button:first-child { background: #e8f3fb; color: #168ddf; }
+.pdf-actions--three { grid-template-columns: repeat(3,1fr); }
+.pdf-actions button,.pdf-actions > a { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 12px; font: inherit; font-weight: 600; text-decoration: none; }
+.pdf-actions button,.pdf-actions > a { background: #e8f3fb; color: #168ddf; }
+.pdf-actions .primary-button { background: #168ddf; color: white; }
 .pdf-actions button:disabled { opacity: .5; }
-@media(max-width:480px){.reconciliation-period{grid-template-columns:1fr 1fr 10px 1fr;font-size:12px}.pdf-preview,.pdf-preview iframe{min-height:520px}}
+@media(max-width:480px){.reconciliation-period{grid-template-columns:1fr 1fr 10px 1fr;font-size:12px}.pdf-preview,.pdf-preview object{min-height:520px}.pdf-actions--three{grid-template-columns:1fr}.pdf-actions{position:static}.pdf-preview-open{right:10px;bottom:10px}}
 .company-fund-page { min-height: 100vh; padding-bottom: 50px; }
 .company-fund-page > h2 { margin: 4px 0 7px; font-size: 19px; }
 .company-fund-manager { margin: 0 0 18px; color: #858a92; font-size: 14px; }

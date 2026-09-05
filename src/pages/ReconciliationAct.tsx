@@ -1,4 +1,4 @@
-import { Download, Share2 } from 'lucide-react'
+import { Download, ExternalLink, Share2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces'
@@ -21,6 +21,7 @@ export function ReconciliationAct() {
   const [loading,setLoading]=useState(true)
   const [pdfUrl,setPdfUrl]=useState('')
   const [pdfBlob,setPdfBlob]=useState<Blob|null>(null)
+  const [pdfError,setPdfError]=useState('')
   const [from,setFrom]=useState(()=>new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10))
   const [to,setTo]=useState(()=>new Date().toISOString().slice(0,10))
   const details=useMemo(()=>read<LegalDetails>(`app101.document-details.${user?.organizationId}`,{}),[user?.organizationId])
@@ -29,7 +30,8 @@ export function ReconciliationAct() {
   useEffect(()=>{
     if(!person||loading)return
     const definition=buildAct({organization:user?.organizationName||user?.name||'Организация',counterparty:person.name,email:person.email||'',phone:person.phone||'',details,events,from,to})
-    generatePdf(definition).then((blob:Blob)=>{setPdfBlob(blob);setPdfUrl(previous=>{if(previous)URL.revokeObjectURL(previous);return URL.createObjectURL(blob)})})
+    setPdfError('')
+    generatePdf(definition).then((blob:Blob)=>{setPdfBlob(blob);setPdfUrl(previous=>{if(previous)URL.revokeObjectURL(previous);return URL.createObjectURL(blob)})}).catch(()=>{setPdfBlob(null);setPdfError('Не удалось сформировать PDF. Попробуйте обновить страницу.')})
     return()=>setPdfUrl(previous=>{if(previous)URL.revokeObjectURL(previous);return ''})
   },[person?.name,person?.email,person?.phone,loading,events,from,to,user?.organizationName,user?.name,details])
   if(!person)return <Navigate to="/counterparties" replace/>
@@ -37,8 +39,8 @@ export function ReconciliationAct() {
   async function share(){if(!pdfBlob)return;const file=new File([pdfBlob],fileName,{type:'application/pdf'});if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:'Акт сверки',files:[file]})}else download(pdfBlob,fileName)}
   return <main className="light-page"><div className="mobile-page reconciliation-page"><PageHeader title="Акт сверки"/>
     <label className="reconciliation-period"><span>Период</span><input type="date" value={from} onChange={e=>setFrom(e.target.value)}/><i>—</i><input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label>
-    <section className="pdf-preview">{loading||!pdfUrl?<p>Формируем PDF…</p>:<iframe title="Предпросмотр акта сверки" src={pdfUrl}/>}</section>
-    <div className="pdf-actions"><button onClick={()=>pdfBlob&&download(pdfBlob,fileName)} disabled={!pdfBlob}><Download/>Скачать PDF</button><button className="primary-button" onClick={share} disabled={!pdfBlob}><Share2/>Поделиться</button></div>
+    <section className="pdf-preview">{pdfError?<p className="form-error">{pdfError}</p>:loading||!pdfUrl?<p>Формируем PDF…</p>:<><object aria-label="Предпросмотр акта сверки" data={pdfUrl} type="application/pdf"><p>Встроенный просмотр PDF не поддерживается этим браузером.</p></object><a className="pdf-preview-open" href={pdfUrl} target="_blank" rel="noopener noreferrer"><ExternalLink/>Открыть PDF</a></>}</section>
+    <div className="pdf-actions pdf-actions--three"><a href={pdfUrl||undefined} target="_blank" rel="noopener noreferrer" aria-disabled={!pdfUrl}><ExternalLink/>Открыть</a><button onClick={()=>pdfBlob&&download(pdfBlob,fileName)} disabled={!pdfBlob}><Download/>Скачать</button><button className="primary-button" onClick={share} disabled={!pdfBlob}><Share2/>Поделиться</button></div>
   </div></main>
 }
 

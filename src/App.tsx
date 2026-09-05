@@ -28,6 +28,7 @@ import { ReconciliationAct } from './pages/ReconciliationAct'
 import { CompanyFund } from './pages/CompanyFund'
 import { Analytics } from './pages/Analytics'
 import { ProjectAgentFeeRecipients } from './pages/ProjectAgentFeeRecipients'
+import { ProjectParticipants } from './pages/ProjectParticipants'
 
 function ProtectedRoute() {
   const { user, loading } = useAuth()
@@ -54,6 +55,7 @@ export function App() {
           <Route path="/projects/:projectId/expense-articles" element={<ProjectExpenseArticles />} />
           <Route path="/projects/:projectId/documents" element={<ProjectDocuments />} />
           <Route path="/projects/:projectId/agent-fee-recipients" element={<ProjectAgentFeeRecipients />} />
+          <Route path="/projects/:projectId/participants" element={<ProjectParticipants />} />
           <Route path="/projects/photo-album-help" element={<PhotoAlbumHelp />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/counterparties" element={<Counterparties />} />
