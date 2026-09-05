@@ -206,6 +206,7 @@ input.single-field { min-height: 72px; border: 0; }
 .project-balance { display: grid; justify-items: end; align-content: space-between; margin: 13px 0; padding: 5px 17px; border-left: 1px dashed #d7d8dc; color: #8b8f96; }
 .project-balance strong { color: #33373c; font-size: 19px; }
 .project-details-page { padding-bottom: 100px; }
+.project-delete-button { color: #bd4b53; }
 .project-details-page .page-header { margin-bottom: 2px; }
 .project-summary { display: grid; gap: 11px; padding: 5px 2px 20px; background: white; }
 .project-summary h1 { margin: 0; font-size: 25px; }

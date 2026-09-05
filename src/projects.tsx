@@ -22,6 +22,7 @@ type ProjectsContextValue = {
   projects: Project[]
   addProject: (project: ProjectInput) => string
   updateProject: (id: string, project: ProjectInput) => void
+  deleteProject: (id: string) => void
 }
 
 const STORAGE_KEY = 'app101.projects'
@@ -44,6 +45,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     projects,
     addProject(project) { const id = createId(); update((current) => [...current, { ...project, id, balance: 0, income: 0, expense: 0 }]); return id },
     updateProject(id, project) { update((current) => current.map((item) => item.id === id ? { ...item, ...project } : item)) },
+    deleteProject(id) { update((current) => current.filter((item) => item.id !== id)) },
   }), [projects])
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>
 }
